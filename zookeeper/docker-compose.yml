@@ -1,0 +1,17 @@
+version: '2'
+services:
+  zoo1:
+    image: hadoop/zookeeper
+    hostname: zoo1
+    environment:
+      ZOO_MY_ID: 1
+  zoo2:
+    image: hadoop/zookeeper
+    hostname: zoo2
+    environment:
+      ZOO_MY_ID: 2
+  zoo3:
+    image: hadoop/zookeeper
+    hostname: zoo3
+    environment:
+      ZOO_MY_ID: 3
