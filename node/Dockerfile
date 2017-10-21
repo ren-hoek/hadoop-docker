@@ -3,6 +3,7 @@ FROM ubuntu:16.04
 RUN apt-get -y update
 RUN apt-get -y install openssh-server openjdk-8-jdk wget
 
+# HDFS/YARN
 RUN mkdir /opt/hadoop
 RUN useradd -d /opt/hadoop hadoop
 RUN chown -R hadoop:hadoop /opt/hadoop/
@@ -26,6 +27,19 @@ RUN mkdir -p ~/hdfs/namenode && \
     mkdir -p ~/hdfs/datanode && \
     mkdir $HADOOP_HOME/logs
 
+# Zookeeper
+USER root
+RUN useradd -d /opt/zookeeper zookeeper
+
+WORKDIR /opt
+RUN wget http://mirror.ox.ac.uk/sites/rsync.apache.org/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz 
+RUN tar xvzf zookeeper-3.4.10.tar.gz
+RUN mv zookeeper-3.4.10 zookeeper
+
+RUN mkdir -p /var/lib/zookeeper
+RUN chown -R zookeeper:zookeeper /var/lib/zookeeper
+RUN chown -R zookeeper:zookeeper /opt/zookeeper
+
 COPY config/* /tmp/
 
 USER root
@@ -41,6 +55,7 @@ RUN mv /tmp/ssh_config $HADOOP_HOME/.ssh/config && \
     mv /tmp/slaves $HADOOP_HOME/etc/hadoop/slaves && \
     mv /tmp/start-hadoop.sh $HADOOP_HOME/start-hadoop.sh && \
     mv /tmp/run-wordcount.sh $HADOOP_HOME/run-wordcount.sh && \
+    mv /tmp/start-master.sh $HADOOP_HOME/start-master.sh && \
     mv /tmp/start-slave.sh $HADOOP_HOME/start-slave.sh
 
 RUN chown -R root:root /tmp/
@@ -49,7 +64,17 @@ RUN chmod +x $HADOOP_HOME/start-hadoop.sh && \
     chmod +x $HADOOP_HOME/run-wordcount.sh && \
     chmod +x $HADOOP_HOME/sbin/start-dfs.sh && \
     chmod +x $HADOOP_HOME/sbin/start-yarn.sh && \
+    chmod +x $HADOOP_HOME/start-master.sh && \
     chmod +x $HADOOP_HOME/start-slave.sh 
 
-CMD [ "./start-slave.sh"]
+# format namenode
+USER hadoop
+RUN $HADOOP_HOME/bin/hdfs namenode -format
+USER root
+EXPOSE 8088 50070
+
+ADD config/zoo.cfg zookeeper/conf
+WORKDIR /opt/hadoop
+
+CMD [ "./start-master.sh"]
 

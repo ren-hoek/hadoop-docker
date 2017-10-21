@@ -1,14 +1,21 @@
 version: '2'
 services:
   hadoop-slave1:
-    image: hadoop/slave
+    image: hadoop/node
     hostname: hadoop-slave1
+    environment:
+      ZOO_MY_ID: 2
   hadoop-slave2:
-    image: hadoop/slave
+    image: hadoop/node
     hostname: hadoop-slave2
+    environment:
+      ZOO_MY_ID: 3
   hadoop-master:
-    image: hadoop/master
+    image: hadoop/node
     hostname: hadoop-master
+    environment:
+      HADOOP_MASTER: 1
+      ZOO_MY_ID: 1
     ports:
       - 8088:8088
       - 50070:50070
