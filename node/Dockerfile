@@ -35,6 +35,7 @@ WORKDIR /opt
 RUN wget http://mirror.ox.ac.uk/sites/rsync.apache.org/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz 
 RUN tar xvzf zookeeper-3.4.10.tar.gz
 RUN mv zookeeper-3.4.10 zookeeper
+RUN rm zookeeper-3.4.10.tar.gz
 
 RUN mkdir -p /var/lib/zookeeper
 RUN chown -R zookeeper:zookeeper /var/lib/zookeeper
@@ -73,7 +74,10 @@ RUN $HADOOP_HOME/bin/hdfs namenode -format
 USER root
 EXPOSE 8088 50070
 
+# Zookeeper confing
 ADD config/zoo.cfg zookeeper/conf
+EXPOSE 2181 2888 3888
+
 WORKDIR /opt/hadoop
 
 CMD [ "./start-master.sh"]

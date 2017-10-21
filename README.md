@@ -1,4 +1,4 @@
-##hadoop-docker
+## hadoop-docker
 
 A 3 node hadoop cluster with a namenode and 2 datanodes
 Based on https://github.com/kiwenlau/hadoop-cluster-docker
@@ -9,13 +9,29 @@ pip install docker-compose
 ```
 
 ### Setup
-To build and run the cluster
+To build and run the cluster services
+
 ```bash
 git clone git@github.com:ren-hoek/hadoop-docker.git
-cd master
-docker build -t hadoop/master .
-cd ../slave
-docker build -t hadoop/slave .
-cd ..
+```
+
+#### HDFS/Yarn
+```bash
+cd hdfs
+./build.sh
+docker-compose up -d
+```
+
+#### Zookeeper
+```bash
+cd zookeeper
+./build.sh
+docker-compose up -d
+```
+
+#### All services 
+```bash
+cd node
+./build.sh
 docker-compose up -d
 ```

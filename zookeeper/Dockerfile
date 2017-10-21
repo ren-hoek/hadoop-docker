@@ -7,6 +7,7 @@ WORKDIR /opt
 RUN wget http://mirror.ox.ac.uk/sites/rsync.apache.org/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz 
 RUN tar xvzf zookeeper-3.4.10.tar.gz
 RUN mv zookeeper-3.4.10 zookeeper
+RUN rm zookeeper-3.4.10.tar.gz
   
 ADD config/zoo.cfg zookeeper/conf
 ADD config/start-zoo.sh zookeeper
