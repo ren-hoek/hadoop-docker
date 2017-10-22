@@ -18,7 +18,7 @@ RUN wget http://mirror.ox.ac.uk/sites/rsync.apache.org/hadoop/common/hadoop-2.7.
 
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 
 ENV HADOOP_HOME=/opt/hadoop 
-ENV PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin 
+ENV PATH="${PATH}:/opt/hadoop/bin:/opt/hadoop/sbin" 
 
 RUN ssh-keygen -t rsa -f ~/.ssh/id_rsa -P '' && \
     cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
@@ -41,9 +41,30 @@ RUN mkdir -p /var/lib/zookeeper
 RUN chown -R zookeeper:zookeeper /var/lib/zookeeper
 RUN chown -R zookeeper:zookeeper /opt/zookeeper
 
-COPY config/* /tmp/
+# Hive
+USER root
+RUN useradd -d /opt/hive hive
+
+WORKDIR /opt
+RUN wget http://mirror.ox.ac.uk/sites/rsync.apache.org/hive/hive-2.1.1/apache-hive-2.1.1-bin.tar.gz
+RUN tar xvzf apache-hive-2.1.1-bin.tar.gz
+RUN mv apache-hive-2.1.1-bin hive
+RUN rm apache-hive-2.1.1-bin.tar.gz
+
+WORKDIR /opt/hive
+USER hive
+ENV HIVE_HOME=/opt/hive
+ENV PATH="${PATH}:$HIVE_HOME/bin" 
 
 USER root
+# Hive metastore
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get -q -y install mysql-server libmysql-java
+
+# Configuration
+WORKDIR /opt
+USER root
+COPY config/* /tmp/
 
 RUN chown -R hadoop:hadoop /tmp/
 
@@ -54,31 +75,48 @@ RUN mv /tmp/ssh_config $HADOOP_HOME/.ssh/config && \
     mv /tmp/mapred-site.xml $HADOOP_HOME/etc/hadoop/mapred-site.xml && \
     mv /tmp/yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml && \
     mv /tmp/slaves $HADOOP_HOME/etc/hadoop/slaves && \
-    mv /tmp/start-hadoop.sh $HADOOP_HOME/start-hadoop.sh && \
     mv /tmp/run-wordcount.sh $HADOOP_HOME/run-wordcount.sh && \
-    mv /tmp/start-master.sh $HADOOP_HOME/start-master.sh && \
-    mv /tmp/start-slave.sh $HADOOP_HOME/start-slave.sh
+    mv /tmp/start-node.sh $HADOOP_HOME/start-node.sh && \
+    cp /tmp/.bashrc $HADOOP_HOME/.bashrc
 
 RUN chown -R root:root /tmp/
 
-RUN chmod +x $HADOOP_HOME/start-hadoop.sh && \
-    chmod +x $HADOOP_HOME/run-wordcount.sh && \
+RUN chmod +x $HADOOP_HOME/run-wordcount.sh && \
     chmod +x $HADOOP_HOME/sbin/start-dfs.sh && \
     chmod +x $HADOOP_HOME/sbin/start-yarn.sh && \
-    chmod +x $HADOOP_HOME/start-master.sh && \
-    chmod +x $HADOOP_HOME/start-slave.sh 
+    chmod +x $HADOOP_HOME/start-node.sh 
+
+RUN chown -R hive:hive $HIVE_HOME
 
 # format namenode
 USER hadoop
 RUN $HADOOP_HOME/bin/hdfs namenode -format
-USER root
+
 EXPOSE 8088 50070
 
-# Zookeeper confing
+# Zookeeper config
+USER zookeeper
 ADD config/zoo.cfg zookeeper/conf
+RUN cp /tmp/.bashrc /opt/zookeeper/.bashrc
+
 EXPOSE 2181 2888 3888
 
-WORKDIR /opt/hadoop
+#Set up hive metastore
+USER hive
+WORKDIR /opt/hive
+RUN cp /tmp/.bashrc $HIVE_HOME/.bashrc && \
+    cp /tmp/metastore.sql $HIVE_HOME/metastore.sql && \
+    cp /tmp/hive-site.xml $HIVE_HOME/conf/hive-site.xml
+RUN ln -s /usr/share/java/libmysql-java.jar /opt/hive/lib/libmysql-java.jar
 
-CMD [ "./start-master.sh"]
+COPY mysql-connector-java-5.1.44.tar.gz .
+RUN tar xvzf mysql-connector-java-5.1.44.tar.gz
+RUN cp mysql-connector-java-5.1.44/mysql-connector-java-5.1.44-bin.jar /opt/hive/lib
+RUN cp /tmp/hive-schema-2.1.0.mysql.sql /opt/hive/scripts/metastore/upgrade/mysql
+
+USER root
+EXPOSE 9083 10000
+
+WORKDIR /opt/hadoop
+CMD [ "./start-node.sh"]
 

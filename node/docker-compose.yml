@@ -5,6 +5,7 @@ services:
     hostname: hadoop-slave1
     environment:
       ZOO_MY_ID: 2
+      HIVE_METASTORE: 1
   hadoop-slave2:
     image: hadoop/node
     hostname: hadoop-slave2
@@ -15,6 +16,7 @@ services:
     hostname: hadoop-master
     environment:
       HADOOP_MASTER: 1
+      HIVE_SERVER: 1
       ZOO_MY_ID: 1
     ports:
       - 8088:8088
